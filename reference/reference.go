@@ -19,6 +19,8 @@ package reference
 import (
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
@@ -83,33 +85,35 @@ var splitRe = regexp.MustCompile(`[:@]`)
 
 // Parse parses the string into a structured ref.
 func Parse(s string) (Spec, error) {
-	//u, err := url.Parse("dummy://" + s)
-	//if err != nil {
-	//	return Spec{}, err
-	//}
+	u, err := url.Parse("dummy://" + s)
+	if err != nil {
+		return Spec{
+			Locator: s,
+			Object:  object,
+		}, nil
+	}
 
-	//if u.Scheme != "dummy" {
-	//	return Spec{}, ErrInvalid
-	//}
+	if u.Scheme != "dummy" {
+		return Spec{}, ErrInvalid
+	}
 
-	//if u.Host == "" {
-	//	return Spec{}, ErrHostnameRequired
-	//}
+	if u.Host == "" {
+		return Spec{}, ErrHostnameRequired
+	}
 
 	var object string
 
-	//if idx := splitRe.FindStringIndex(u.Path); idx != nil {
-	// This allows us to retain the @ to signify digests or shortened digests in
-	// the object.
-	//	object = u.Path[idx[0]:]
-	//	if object[:1] == ":" {
-	//		object = object[1:]
-	//	}
-	//	u.Path = u.Path[:idx[0]]
-	//}
-
+	if idx := splitRe.FindStringIndex(u.Path); idx != nil {
+		//This allows us to retain the @ to signify digests or shortened digests in
+		//the object.
+		object = u.Path[idx[0]:]
+		if object[:1] == ":" {
+			object = object[1:]
+		}
+		u.Path = u.Path[:idx[0]]
+	}
 	return Spec{
-		Locator: s,
+		Locator: path.Join(u.Host, u.Path),
 		Object:  object,
 	}, nil
 }
